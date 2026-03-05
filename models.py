@@ -46,3 +46,20 @@ class Reservation(Base):
     reservation_time = Column(DateTime)
     number_of_people = Column(Integer)
     status = Column(String, default="pending") # pending, confirmed, rejected
+
+
+class Cafe(Base):
+    __tablename__ = "cafes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String)
+    description = Column(String)
+    address = Column(String)
+    city = Column(String)
+    working_hours = Column(String)  # Наприклад: "09:00 - 21:00"
+
+    # Додаткові штучки (Amenities)
+    has_wifi = Column(Boolean, default=False)
+    has_parking = Column(Boolean, default=False)
+    has_terrace = Column(Boolean, default=False)
+    is_pet_friendly = Column(Boolean, default=False)
