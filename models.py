@@ -63,3 +63,13 @@ class Cafe(Base):
     has_parking = Column(Boolean, default=False)
     has_terrace = Column(Boolean, default=False)
     is_pet_friendly = Column(Boolean, default=False)
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True)
+    hashed_password = Column(String)
+    role = Column(String, default="customer") # "admin", "manager", "customer"
+    is_active = Column(Boolean, default=True)
