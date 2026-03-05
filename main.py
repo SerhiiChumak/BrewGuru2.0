@@ -78,44 +78,62 @@ class CafeBase(BaseModel):
     is_pet_friendly: bool
     rating: float
 
-# Імітація бази даних (для швидкого старту)
-fake_cafes_db = [
-    {
-        "id": 1,
-        "name": "Зерно",
-        "city": "Київ",
-        "address": "вул. Політехнічна, 5",
-        "has_wifi": True,
-        "is_pet_friendly": True,
-        "rating": 4.9
-    },
-    {
-        "id": 2,
-        "name": "Кавовий куточок",
-        "city": "Львів",
-        "address": "Площа Ринок, 1",
-        "has_wifi": False,
-        "is_pet_friendly": True,
-        "rating": 4.5
-    },
-]
+# # Імітація бази даних (для швидкого старту)
+# fake_cafes_db = [
+#     {
+#         "id": 1,
+#         "name": "Зерно",
+#         "city": "Київ",
+#         "address": "вул. Політехнічна, 5",
+#         "has_wifi": True,
+#         "is_pet_friendly": True,
+#         "rating": 4.9
+#     },
+#     {
+#         "id": 2,
+#         "name": "Кавовий куточок",
+#         "city": "Львів",
+#         "address": "Площа Ринок, 1",
+#         "has_wifi": False,
+#         "is_pet_friendly": True,
+#         "rating": 4.5
+#     },
+# ]
 
-@app.get("/cafes", response_model=List[CafeBase])
-async def get_cafes(city: Optional[str] = None):
-    """
-    Повертає список кафе. Можна фільтрувати за містом.
-    """
+# @app.get("/cafes", response_model=List[CafeBase])
+# async def get_cafes(city: Optional[str] = None):
+#     """
+#     Повертає список кафе. Можна фільтрувати за містом.
+#     """
+#     if city:
+#         return [c for c in fake_cafes_db if c["city"].lower() == city.lower()]
+#     return fake_cafes_db
+#
+# @app.get("/cafes/{cafe_id}")
+# async def get_cafe_details(cafe_id: int):
+#     """
+#     Повертає повну інформацію про конкретне кафе.
+#     """
+#     cafe = next((c for c in fake_cafes_db if c["id"] == cafe_id), None)
+#     return cafe or {"error": "Cafe not found"}
+
+@app.get("/cafes", response_model=List[schemas.Cafe])
+def get_cafes(city: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(models.Cafe)
+
     if city:
-        return [c for c in fake_cafes_db if c["city"].lower() == city.lower()]
-    return fake_cafes_db
+        # Фільтруємо по місту (незалежно від регістру)
+        query = query.filter(models.Cafe.city.ilike(f"%{city}%"))
 
-@app.get("/cafes/{cafe_id}")
-async def get_cafe_details(cafe_id: int):
-    """
-    Повертає повну інформацію про конкретне кафе.
-    """
-    cafe = next((c for c in fake_cafes_db if c["id"] == cafe_id), None)
-    return cafe or {"error": "Cafe not found"}
+    return query.all()
+
+
+@app.get("/cafes/{cafe_id}", response_model=schemas.Cafe)
+def get_cafe(cafe_id: int, db: Session = Depends(get_db)):
+    cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
+    if not cafe:
+        raise HTTPException(status_code=404, detail="Cafe not found")
+    return cafe
 
 
 # Отримати всі замовлення (для менеджера)
@@ -156,3 +174,34 @@ def create_reservation(res_data: schemas.ReservationCreate, db: Session = Depend
 @app.get("/reservations")
 def get_reservations(db: Session = Depends(get_db)):
     return db.query(models.Reservation).all()
+
+
+@app.post("/cafes", response_model=schemas.Cafe)
+def create_cafe(cafe: schemas.CafeCreate, db: Session = Depends(get_db)):
+    """
+    Створює нове кафе.
+    Зараз доступно всім, але в гілці Auth ми обмежимо це лише для Адміна.
+    """
+    # Створюємо екземпляр моделі SQLAlchemy, розпаковуючи дані з Pydantic
+    new_cafe = models.Cafe(**cafe.dict())
+
+    db.add(new_cafe)
+    db.commit()
+    db.refresh(new_cafe)  # Отримуємо згенерований ID з бази
+    return new_cafe
+
+
+@app.put("/cafes/{cafe_id}", response_model=schemas.Cafe)
+def update_cafe(cafe_id: int, updated_cafe: schemas.CafeCreate, db: Session = Depends(get_db)):
+    db_cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
+
+    if not db_cafe:
+        raise HTTPException(status_code=404, detail="Cafe not found")
+
+    # Оновлюємо кожне поле
+    for key, value in updated_cafe.dict().items():
+        setattr(db_cafe, key, value)
+
+    db.commit()
+    db.refresh(db_cafe)
+    return db_cafe
