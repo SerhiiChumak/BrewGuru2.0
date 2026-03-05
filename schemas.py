@@ -70,3 +70,24 @@ class Order(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class CafeBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    address: str
+    city: str
+    working_hours: str
+    has_wifi: bool
+    has_parking: bool
+    has_terrace: bool
+    is_pet_friendly: bool
+
+class CafeCreate(CafeBase):
+    pass # Використовуємо для створення нового кафе (Адміном)
+
+class Cafe(CafeBase):
+    id: int
+
+    class Config:
+        orm_mode = True
