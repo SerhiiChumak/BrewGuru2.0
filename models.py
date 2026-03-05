@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, Table, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
 
@@ -34,3 +34,15 @@ class OrderItem(Base):
     quantity = Column(Integer)
 
     order = relationship("Order", back_populates="items")
+
+
+class Reservation(Base):
+    __tablename__ = "reservations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    cafe_id = Column(Integer) # В майбутньому ForeignKey
+    customer_name = Column(String)
+    customer_phone = Column(String)
+    reservation_time = Column(DateTime)
+    number_of_people = Column(Integer)
+    status = Column(String, default="pending") # pending, confirmed, rejected
