@@ -1,8 +1,11 @@
+from datetime import timedelta, datetime
+
 from fastapi import FastAPI, Depends, HTTPException, Body
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.orm import Session
 import models, schemas, auth
+from fastapi.security import OAuth2PasswordRequestForm
 from database import engine, get_db
 
 
@@ -16,19 +19,6 @@ def read_menu(db: Session = Depends(get_db)):
     return db.query(models.MenuItem).all()
 
 
-# @app.post("/orders")
-# def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
-#     # 1. Рахуємо ціну (дуже спрощено)
-#     items = db.query(models.MenuItem).filter(models.MenuItem.id.in_(order_data.item_ids)).all()
-#     total = sum([item.price for item in items])
-#
-#     # 2. Створюємо запис замовлення
-#     new_order = models.Order(customer_name=order_data.customer_name, total_price=total)
-#     db.add(new_order)
-#     db.commit()
-#     db.refresh(new_order)
-#
-#     return {"message": "Order created!", "order_id": new_order.id, "total": total}
 @app.post("/orders", response_model=schemas.Order)
 def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
     total = 0.0
@@ -78,44 +68,6 @@ class CafeBase(BaseModel):
     is_pet_friendly: bool
     rating: float
 
-# # Імітація бази даних (для швидкого старту)
-# fake_cafes_db = [
-#     {
-#         "id": 1,
-#         "name": "Зерно",
-#         "city": "Київ",
-#         "address": "вул. Політехнічна, 5",
-#         "has_wifi": True,
-#         "is_pet_friendly": True,
-#         "rating": 4.9
-#     },
-#     {
-#         "id": 2,
-#         "name": "Кавовий куточок",
-#         "city": "Львів",
-#         "address": "Площа Ринок, 1",
-#         "has_wifi": False,
-#         "is_pet_friendly": True,
-#         "rating": 4.5
-#     },
-# ]
-
-# @app.get("/cafes", response_model=List[CafeBase])
-# async def get_cafes(city: Optional[str] = None):
-#     """
-#     Повертає список кафе. Можна фільтрувати за містом.
-#     """
-#     if city:
-#         return [c for c in fake_cafes_db if c["city"].lower() == city.lower()]
-#     return fake_cafes_db
-#
-# @app.get("/cafes/{cafe_id}")
-# async def get_cafe_details(cafe_id: int):
-#     """
-#     Повертає повну інформацію про конкретне кафе.
-#     """
-#     cafe = next((c for c in fake_cafes_db if c["id"] == cafe_id), None)
-#     return cafe or {"error": "Cafe not found"}
 
 @app.get("/cafes", response_model=List[schemas.Cafe])
 def get_cafes(city: Optional[str] = None, db: Session = Depends(get_db)):
@@ -176,21 +128,6 @@ def get_reservations(db: Session = Depends(get_db)):
     return db.query(models.Reservation).all()
 
 
-@app.post("/cafes", response_model=schemas.Cafe)
-def create_cafe(cafe: schemas.CafeCreate, db: Session = Depends(get_db)):
-    """
-    Створює нове кафе.
-    Зараз доступно всім, але в гілці Auth ми обмежимо це лише для Адміна.
-    """
-    # Створюємо екземпляр моделі SQLAlchemy, розпаковуючи дані з Pydantic
-    new_cafe = models.Cafe(**cafe.dict())
-
-    db.add(new_cafe)
-    db.commit()
-    db.refresh(new_cafe)  # Отримуємо згенерований ID з бази
-    return new_cafe
-
-
 @app.put("/cafes/{cafe_id}", response_model=schemas.Cafe)
 def update_cafe(cafe_id: int, updated_cafe: schemas.CafeCreate, db: Session = Depends(get_db)):
     db_cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
@@ -228,3 +165,42 @@ def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
     return new_user
 
+
+@app.post("/token")
+def login_for_access_token(
+        form_data: OAuth2PasswordRequestForm = Depends(),
+        db: Session = Depends(get_db)
+):
+    # 1. Шукаємо юзера за email (у формі це поле username)
+    user = db.query(models.User).filter(models.User.email == form_data.username).first()
+
+    # 2. Перевіряємо чи юзер існує і чи правильний пароль
+    if not user or not auth.verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=401,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # 3. Створюємо токен
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user.email, "role": user.role},  # Додаємо роль у токен!
+        expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.post("/cafes", response_model=schemas.Cafe)
+def create_cafe(
+    cafe: schemas.CafeCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(auth.get_admin_user) # ОСЬ ТУТ МАГІЯ
+):
+    """Створювати кафе тепер може ТІЛЬКИ адмін"""
+    new_cafe = models.Cafe(**cafe.dict())
+    db.add(new_cafe)
+    db.commit()
+    db.refresh(new_cafe)
+    return new_cafe

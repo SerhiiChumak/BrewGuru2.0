@@ -26,8 +26,7 @@ class Reservation(ReservationCreate):
     id: int
     status: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 # Базова схема для страви (те, що бачимо в меню)
@@ -40,8 +39,7 @@ class MenuItemBase(BaseModel):
 class MenuItem(MenuItemBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 # Схема для елемента в замовленні (страва + кількість)
@@ -49,8 +47,7 @@ class OrderItemSchema(BaseModel):
     menu_item_id: int
     quantity: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 # Схема для створення замовлення (те, що присилає фронтенд)
@@ -68,8 +65,7 @@ class Order(BaseModel):
 
     # Тут ми можемо додати список самих страв, якщо налаштуємо релейшни
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class CafeBase(BaseModel):
@@ -89,8 +85,7 @@ class CafeCreate(CafeBase):
 class Cafe(CafeBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 
 class UserCreate(BaseModel):
@@ -104,5 +99,4 @@ class UserOut(BaseModel):
     email: str
     role: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
