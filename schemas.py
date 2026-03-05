@@ -91,3 +91,18 @@ class Cafe(CafeBase):
 
     class Config:
         orm_mode = True
+
+
+class UserCreate(BaseModel):
+    email: str
+    password: str
+    role: Optional[str] = "customer"
+
+
+class UserOut(BaseModel):
+    id: int
+    email: str
+    role: str
+
+    class Config:
+        orm_mode = True

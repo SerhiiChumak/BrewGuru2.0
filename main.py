@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, Body
 from pydantic import BaseModel
 from typing import List, Optional
 from sqlalchemy.orm import Session
-import models, schemas
+import models, schemas, auth
 from database import engine, get_db
 
 
@@ -205,3 +205,26 @@ def update_cafe(cafe_id: int, updated_cafe: schemas.CafeCreate, db: Session = De
     db.commit()
     db.refresh(db_cafe)
     return db_cafe
+
+
+@app.post("/register", response_model=schemas.UserOut)
+def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    # Перевіряємо, чи такий email вже існує
+    db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Хешуємо пароль перед збереженням!
+    hashed_pwd = auth.get_password_hash(user_data.password)
+
+    new_user = models.User(
+        email=user_data.email,
+        hashed_password=hashed_pwd,
+        role=user_data.role
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
