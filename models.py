@@ -61,6 +61,17 @@ class OpeningHours(Base):
     cafe = relationship("Cafe", back_populates="opening_hours")
 
 
+class Visit(Base):
+    __tablename__ = "visits"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    cafe_id = Column(Integer, ForeignKey("cafes.id"))
+    visit_time = Column(DateTime, server_default=func.now())
+
+    user = relationship("User")
+    cafe = relationship("Cafe")
+
+
 class MenuItem(Base):
     __tablename__ = "menu_items"
     id = Column(Integer, primary_key=True, index=True)

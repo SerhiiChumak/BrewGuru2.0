@@ -296,3 +296,27 @@ def update_my_settings(
     db.commit()
     db.refresh(settings)
     return settings
+
+
+@app.get("/users/me/history", response_model=List[schemas.HistoryResponse])
+def get_my_history(
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    # Отримуємо всі візити юзера
+    visits = db.query(models.Visit).filter(models.Visit.user_id == current_user.id).all()
+
+    # Для початку повернемо список, де кожна дата - це окремий запис, як у прикладі.
+    history = []
+    for visit in visits:
+        history.append({
+            "id": visit.id,
+            "user_id": current_user.id,
+            "date": visit.visit_time.strftime("%Y-%m-%d"),
+            "items": [{
+                "id": visit.id,
+                "cafe": visit.cafe,
+                "time": visit.visit_time
+            }]
+        })
+    return history

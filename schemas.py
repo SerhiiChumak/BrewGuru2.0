@@ -167,3 +167,56 @@ class UserSettingsSchema(BaseModel):
             for i, word in enumerate(s.split("_"))
         )
     )
+
+
+class OpeningHoursOut(BaseModel):
+    id: int
+    weekday: int
+    open_time: str
+    close_time: str
+    is_open: bool
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize() if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
+
+
+class CafeInVisit(BaseModel):
+    id: int
+    name: str
+    img: Optional[str]
+    address: str
+    opening_hours: List[OpeningHoursOut]
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize()
+                                          if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
+
+
+class VisitItem(BaseModel):
+    id: int
+    cafe: CafeInVisit
+    time: datetime
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class HistoryResponse(BaseModel):
+    id: int
+    user_id: int
+    date: str
+    items: List[VisitItem]
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize()
+                                          if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
