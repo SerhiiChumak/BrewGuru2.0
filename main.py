@@ -19,42 +19,6 @@ def read_menu(db: Session = Depends(get_db)):
     return db.query(models.MenuItem).all()
 
 
-# @app.post("/orders", response_model=schemas.Order)
-# def create_order(
-#         order_data: schemas.OrderCreate,
-#         db: Session = Depends(get_db),
-#         current_user: models.User = Depends(auth.get_current_user)  # Дістаємо юзера з токена
-# ):
-#     total = 0.0
-#
-#     # Створюємо замовлення, прив'язуючи його до current_user.id
-#     new_order = models.Order(
-#         customer_name=current_user.email,  # Або current_user.full_name, якщо є
-#         total_price=0,
-#         status="pending",
-#         user_id=current_user.id  # ПРИВ'ЯЗКА ТУТ
-#     )
-#     db.add(new_order)
-#     db.flush()
-#
-#     for item in order_data.items:
-#         menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == item.menu_item_id).first()
-#         if not menu_item:
-#             raise HTTPException(status_code=404, detail=f"Item {item.menu_item_id} not found")
-#
-#         total += menu_item.price * item.quantity
-#         oi = models.OrderItem(
-#             order_id=new_order.id,
-#             menu_item_id=menu_item.id,
-#             quantity=item.quantity
-#         )
-#         db.add(oi)
-#
-#     new_order.total_price = total
-#     db.commit()
-#     db.refresh(new_order)
-#     return new_order
-
 @app.post("/orders", response_model=schemas.Order)
 def create_order(
         order_data: schemas.OrderCreate,
@@ -198,27 +162,6 @@ def update_cafe(
     db.refresh(db_cafe)
     return db_cafe
 
-
-# @app.post("/register", response_model=schemas.UserOut)
-# def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-#     # Перевіряємо, чи такий email вже існує
-#     db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#
-#     # Хешуємо пароль перед збереженням!
-#     hashed_pwd = auth.get_password_hash(user_data.password)
-#
-#     new_user = models.User(
-#         email=user_data.email,
-#         hashed_password=hashed_pwd,
-#         role=user_data.role
-#     )
-#
-#     db.add(new_user)
-#     db.commit()
-#     db.refresh(new_user)
-#     return new_user
 
 @app.post("/register", response_model=schemas.UserOut)
 def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
