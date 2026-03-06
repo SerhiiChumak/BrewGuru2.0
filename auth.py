@@ -66,3 +66,13 @@ def get_admin_user(current_user: models.User = Depends(get_current_user)):
             detail="You do not have enough permissions. Admin only!"
         )
     return current_user
+
+
+def get_manager_user(current_user: models.User = Depends(get_current_user)):
+    # Менеджер або Адмін мають доступ до замовлень
+    if current_user.role not in ["manager", "admin"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied. Managers only."
+        )
+    return current_user

@@ -239,3 +239,17 @@ def get_cafe_menu(cafe_id: int, db: Session = Depends(get_db)):
             raise HTTPException(status_code=404, detail="Cafe not found")
 
     return menu_items
+
+
+@app.get("/cafes/{cafe_id}/orders", response_model=List[schemas.Order])
+def get_cafe_orders(
+        cafe_id: int,
+        db: Session = Depends(get_db),
+        manager: models.User = Depends(auth.get_manager_user)
+):
+    # Тут ми кажемо: "Дай мені замовлення, в яких є хоча б одна страва з цього кафе"
+    orders = db.query(models.Order).join(models.OrderItem).join(models.MenuItem).filter(
+        models.MenuItem.cafe_id == cafe_id
+    ).distinct().all()
+
+    return orders
