@@ -19,38 +19,90 @@ def read_menu(db: Session = Depends(get_db)):
     return db.query(models.MenuItem).all()
 
 
+# @app.post("/orders", response_model=schemas.Order)
+# def create_order(
+#         order_data: schemas.OrderCreate,
+#         db: Session = Depends(get_db),
+#         current_user: models.User = Depends(auth.get_current_user)  # Дістаємо юзера з токена
+# ):
+#     total = 0.0
+#
+#     # Створюємо замовлення, прив'язуючи його до current_user.id
+#     new_order = models.Order(
+#         customer_name=current_user.email,  # Або current_user.full_name, якщо є
+#         total_price=0,
+#         status="pending",
+#         user_id=current_user.id  # ПРИВ'ЯЗКА ТУТ
+#     )
+#     db.add(new_order)
+#     db.flush()
+#
+#     for item in order_data.items:
+#         menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == item.menu_item_id).first()
+#         if not menu_item:
+#             raise HTTPException(status_code=404, detail=f"Item {item.menu_item_id} not found")
+#
+#         total += menu_item.price * item.quantity
+#         oi = models.OrderItem(
+#             order_id=new_order.id,
+#             menu_item_id=menu_item.id,
+#             quantity=item.quantity
+#         )
+#         db.add(oi)
+#
+#     new_order.total_price = total
+#     db.commit()
+#     db.refresh(new_order)
+#     return new_order
+
 @app.post("/orders", response_model=schemas.Order)
 def create_order(
         order_data: schemas.OrderCreate,
         db: Session = Depends(get_db),
-        current_user: models.User = Depends(auth.get_current_user)  # Дістаємо юзера з токена
+        current_user: models.User = Depends(auth.get_current_user)
 ):
+    # 1. Беремо першу страву, щоб дізнатися, з якого кафе йде замовлення
+    first_item = db.query(models.MenuItem).filter(models.MenuItem.id == order_data.items[0].menu_item_id).first()
+    if not first_item:
+        raise HTTPException(status_code=404, detail="First menu item not found")
+
+    target_cafe_id = first_item.cafe_id
     total = 0.0
 
-    # Створюємо замовлення, прив'язуючи його до current_user.id
+    # 2. Перевіряємо всі інші страви
+    for item in order_data.items:
+        menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == item.menu_item_id).first()
+
+        if not menu_item:
+            raise HTTPException(status_code=404, detail=f"Item {item.menu_item_id} not found")
+
+        # ОСЬ ТУТ ПЕРЕВІРКА:
+        if menu_item.cafe_id != target_cafe_id:
+            raise HTTPException(
+                status_code=400,
+                detail="You can only order items from one cafe at a time"
+            )
+
+        total += menu_item.price * item.quantity
+
+    # 3. Якщо все ок — створюємо замовлення
     new_order = models.Order(
-        customer_name=current_user.email,  # Або current_user.full_name, якщо є
-        total_price=0,
+        total_price=total,
         status="pending",
-        user_id=current_user.id  # ПРИВ'ЯЗКА ТУТ
+        user_id=current_user.id
     )
     db.add(new_order)
     db.flush()
 
+    # Додаємо зв'язки...
     for item in order_data.items:
-        menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == item.menu_item_id).first()
-        if not menu_item:
-            raise HTTPException(status_code=404, detail=f"Item {item.menu_item_id} not found")
-
-        total += menu_item.price * item.quantity
         oi = models.OrderItem(
             order_id=new_order.id,
-            menu_item_id=menu_item.id,
+            menu_item_id=item.menu_item_id,
             quantity=item.quantity
         )
         db.add(oi)
 
-    new_order.total_price = total
     db.commit()
     db.refresh(new_order)
     return new_order

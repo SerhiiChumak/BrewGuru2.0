@@ -7,20 +7,24 @@ import models
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
+import os
+from dotenv import load_dotenv
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+load_dotenv()
+
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 60))
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
-
-
-# ЦЕ ВАЖЛИВО: У реальному проєкті ховай це в .env файл!
-SECRET_KEY = "super-secret-key-that-no-one-should-know"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # Токен діятиме одну годину
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
