@@ -106,15 +106,39 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from database import Base
+from sqlalchemy.sql import func
 
 
 class User(Base):
     __tablename__ = "users"
+
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
+
+    # Нові поля від фронтенда
+    first_name = Column(String, nullable=True)
+    last_name = Column(String, nullable=True)
+    img = Column(String, nullable=True)  # URL аватара
+    phone = Column(String, nullable=True)
+
+    email_verified = Column(Boolean, default=False)
+    two_factor_enabled = Column(Boolean, default=False)
+
     role = Column(String, default="customer")
     is_active = Column(Boolean, default=True)
+
+    # Автоматичні дати
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
+
+# class User(Base):
+#     __tablename__ = "users"
+#     id = Column(Integer, primary_key=True, index=True)
+#     email = Column(String, unique=True, index=True)
+#     hashed_password = Column(String)
+#     role = Column(String, default="customer")
+#     is_active = Column(Boolean, default=True)
 
 
 class Cafe(Base):

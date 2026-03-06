@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, ConfigDict
 from datetime import datetime
 from typing import List, Optional
 
@@ -95,15 +95,41 @@ class Cafe(CafeBase):
     model_config = {"from_attributes": True}
 
 
-class UserCreate(BaseModel):
-    email: str
-    password: str
-    role: Optional[str] = "customer"
+# class UserCreate(BaseModel):
+#     email: str
+#     password: str
+#     role: Optional[str] = "customer"
+#
+#
+# class UserOut(BaseModel):
+#     id: int
+#     email: str
+#     role: str
+#
+#     model_config = {"from_attributes": True}
 
 
-class UserOut(BaseModel):
+class UserBase(BaseModel):
+    email: EmailStr
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    img: Optional[str] = None
+    phone: Optional[str] = None
+
+# Схема для відповіді фронтенду
+class UserOut(UserBase):
     id: int
-    email: str
-    role: str
+    email_verified: bool
+    two_factor_enabled: bool
+    created_at: datetime
+    updated_at: datetime
 
-    model_config = {"from_attributes": True}
+    # Магія для відповідності фронтенд-формату (camelCase)
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )
