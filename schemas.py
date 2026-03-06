@@ -42,6 +42,13 @@ class MenuItem(MenuItemBase):
     model_config = {"from_attributes": True}
 
 
+class MenuItemCreate(BaseModel):
+    name: str
+    price: float
+    description: Optional[str] = None
+    cafe_id: int
+
+
 # Схема для елемента в замовленні (страва + кількість)
 class OrderItemSchema(BaseModel):
     menu_item_id: int

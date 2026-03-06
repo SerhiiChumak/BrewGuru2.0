@@ -20,29 +20,29 @@ def read_menu(db: Session = Depends(get_db)):
 
 
 @app.post("/orders", response_model=schemas.Order)
-def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db)):
+def create_order(
+        order_data: schemas.OrderCreate,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)  # Дістаємо юзера з токена
+):
     total = 0.0
-    order_items = []
 
-    # 1. Створюємо об'єкт замовлення (спочатку без суми)
+    # Створюємо замовлення, прив'язуючи його до current_user.id
     new_order = models.Order(
-        customer_name=order_data.customer_name,
+        customer_name=current_user.email,  # Або current_user.full_name, якщо є
         total_price=0,
-        status="pending"
+        status="pending",
+        user_id=current_user.id  # ПРИВ'ЯЗКА ТУТ
     )
     db.add(new_order)
-    db.flush()  # flush дозволяє отримати ID замовлення, не завершуючи транзакцію
+    db.flush()
 
-    # 2. Обробляємо кожну страву в замовленні
     for item in order_data.items:
         menu_item = db.query(models.MenuItem).filter(models.MenuItem.id == item.menu_item_id).first()
         if not menu_item:
             raise HTTPException(status_code=404, detail=f"Item {item.menu_item_id} not found")
 
-        # Рахуємо суму: ціна страви * кількість
         total += menu_item.price * item.quantity
-
-        # Створюємо запис у проміжній таблиці order_items
         oi = models.OrderItem(
             order_id=new_order.id,
             menu_item_id=menu_item.id,
@@ -50,11 +50,9 @@ def create_order(order_data: schemas.OrderCreate, db: Session = Depends(get_db))
         )
         db.add(oi)
 
-    # 3. Оновлюємо фінальну суму замовлення
     new_order.total_price = total
     db.commit()
     db.refresh(new_order)
-
     return new_order
 
 
@@ -116,7 +114,7 @@ def create_reservation(res_data: schemas.ReservationCreate, db: Session = Depend
     if res_data.reservation_time < datetime.now():
         raise HTTPException(status_code=400, detail="Cannot book in the past")
 
-    new_res = models.Reservation(**res_data.dict())
+    new_res = models.Reservation(**res_data.model_dump())
     db.add(new_res)
     db.commit()
     db.refresh(new_res)
@@ -129,14 +127,19 @@ def get_reservations(db: Session = Depends(get_db)):
 
 
 @app.put("/cafes/{cafe_id}", response_model=schemas.Cafe)
-def update_cafe(cafe_id: int, updated_cafe: schemas.CafeCreate, db: Session = Depends(get_db)):
+def update_cafe(
+    cafe_id: int,
+    updated_cafe: schemas.CafeCreate,
+    db: Session = Depends(get_db),
+    admin: models.User = Depends(auth.get_admin_user)
+):
     db_cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
 
     if not db_cafe:
         raise HTTPException(status_code=404, detail="Cafe not found")
 
     # Оновлюємо кожне поле
-    for key, value in updated_cafe.dict().items():
+    for key, value in updated_cafe.model_dump().items():
         setattr(db_cafe, key, value)
 
     db.commit()
@@ -199,8 +202,40 @@ def create_cafe(
     admin: models.User = Depends(auth.get_admin_user) # ОСЬ ТУТ МАГІЯ
 ):
     """Створювати кафе тепер може ТІЛЬКИ адмін"""
-    new_cafe = models.Cafe(**cafe.dict())
+    new_cafe = models.Cafe(**cafe.model_dump())
     db.add(new_cafe)
     db.commit()
     db.refresh(new_cafe)
     return new_cafe
+
+
+@app.post("/menu-items", response_model=schemas.MenuItem)
+def create_menu_item(
+        item: schemas.MenuItemCreate,
+        db: Session = Depends(get_db),
+        admin: models.User = Depends(auth.get_admin_user)  # Тільки адмін
+):
+    # Перевіряємо, чи існує таке кафе
+    cafe = db.query(models.Cafe).filter(models.Cafe.id == item.cafe_id).first()
+    if not cafe:
+        raise HTTPException(status_code=404, detail="Cafe not found")
+
+    new_item = models.MenuItem(**item.model_dump())
+    db.add(new_item)
+    db.commit()
+    db.refresh(new_item)
+    return new_item
+
+
+@app.get("/cafes/{cafe_id}/menu", response_model=List[schemas.MenuItem])
+def get_cafe_menu(cafe_id: int, db: Session = Depends(get_db)):
+    # Шукаємо всі страви, де cafe_id збігається з ID в URL
+    menu_items = db.query(models.MenuItem).filter(models.MenuItem.cafe_id == cafe_id).all()
+
+    if not menu_items:
+        # Можна або повернути пустий список, або помилку, якщо кафе не існує
+        cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
+        if not cafe:
+            raise HTTPException(status_code=404, detail="Cafe not found")
+
+    return menu_items
