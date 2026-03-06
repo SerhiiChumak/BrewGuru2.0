@@ -232,13 +232,16 @@ def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
     # 3. Створюємо юзера з усіма новими полями
     # Використовуємо model_dump() для зручності, але виключаємо пароль
+    # 1. Створюємо юзера
     user_dict = user_data.model_dump(exclude={"password"})
-    new_user = models.User(
-        hashed_password=hashed_pwd,
-        **user_dict
-    )
-
+    new_user = models.User(hashed_password=hashed_pwd, **user_dict)
     db.add(new_user)
+    db.flush()  # Отримуємо ID юзера
+
+    # 2. Створюємо дефолтні налаштування для цього юзера
+    default_settings = models.UserSettings(user_id=new_user.id)
+    db.add(default_settings)
+
     db.commit()
     db.refresh(new_user)
     return new_user
@@ -329,7 +332,24 @@ def get_cafe_orders(
 
     return orders
 
+
 @app.get("/users/me", response_model=schemas.UserOut)
 def get_user_profile(current_user: models.User = Depends(auth.get_current_user)):
     """Повертає дані профілю поточного юзера для фронтенда"""
     return current_user
+
+
+@app.patch("/users/me/settings", response_model=schemas.UserSettingsSchema)
+def update_my_settings(
+        settings_data: schemas.UserSettingsSchema,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    settings = db.query(models.UserSettings).filter(models.UserSettings.user_id == current_user.id).first()
+
+    for key, value in settings_data.model_dump().items():
+        setattr(settings, key, value)
+
+    db.commit()
+    db.refresh(settings)
+    return settings

@@ -149,3 +149,21 @@ class UserOut(UserBase):
             for i, word in enumerate(s.split("_"))
         )
     )
+
+
+class UserSettingsSchema(BaseModel):
+    email_notifications: bool
+    push_notifications: bool
+    nearest_reservation_reminder: bool
+    comment_reply_notification: bool
+    saved_payment_methods: bool
+    allow_analytics: bool
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )

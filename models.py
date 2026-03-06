@@ -132,13 +132,7 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())
 
-# class User(Base):
-#     __tablename__ = "users"
-#     id = Column(Integer, primary_key=True, index=True)
-#     email = Column(String, unique=True, index=True)
-#     hashed_password = Column(String)
-#     role = Column(String, default="customer")
-#     is_active = Column(Boolean, default=True)
+    settings = relationship("UserSettings", back_populates="user", uselist=False)
 
 
 class Cafe(Base):
@@ -198,3 +192,20 @@ class Reservation(Base):
     reservation_time = Column(DateTime)
     number_of_people = Column(Integer)
     status = Column(String, default="pending")
+
+
+class UserSettings(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+
+    email_notifications = Column(Boolean, default=True)
+    push_notifications = Column(Boolean, default=True)
+    nearest_reservation_reminder = Column(Boolean, default=True)
+    comment_reply_notification = Column(Boolean, default=True)
+    saved_payment_methods = Column(Boolean, default=False)
+    allow_analytics = Column(Boolean, default=True)
+
+    user = relationship("User", back_populates="settings")
+
