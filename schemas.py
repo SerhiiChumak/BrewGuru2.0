@@ -108,6 +108,22 @@ class Cafe(CafeBase):
 #
 #     model_config = {"from_attributes": True}
 
+class UserCreate(BaseModel):
+    email: EmailStr
+    password: str
+    first_name: Optional[str] = None # Буде firstName для фронтенда
+    last_name: Optional[str] = None  # Буде lastName для фронтенда
+    role: Optional[str] = "customer"
+
+    # Це налаштування дозволить фронтенду присилати JSON з camelCase
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )
+
 
 class UserBase(BaseModel):
     email: EmailStr
