@@ -129,3 +129,30 @@ class UserSettings(Base):
 
     user = relationship("User", back_populates="settings")
 
+
+class Review(Base):
+    __tablename__ = "reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    cafe_id = Column(Integer, ForeignKey("cafes.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    rating = Column(Integer) # 1-5
+    comment = Column(String)
+    likes = Column(Integer, default=0)
+    dislikes = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    replies = relationship("ReviewReply", back_populates="review")
+
+class ReviewReply(Base):
+    __tablename__ = "review_replies"
+    id = Column(Integer, primary_key=True, index=True)
+    review_id = Column(Integer, ForeignKey("reviews.id"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+    comment = Column(String)
+    likes = Column(Integer, default=0)
+    dislikes = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User")
+    review = relationship("Review", back_populates="replies")

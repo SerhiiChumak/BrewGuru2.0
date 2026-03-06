@@ -320,3 +320,28 @@ def get_my_history(
             }]
         })
     return history
+
+
+@app.get("/cafes/{cafe_id}/reviews", response_model=List[schemas.ReviewOut])
+def get_cafe_reviews(cafe_id: int, db: Session = Depends(get_db)):
+    # Завантажуємо відгуки разом із реплаями (eager loading для швидкості)
+    reviews = db.query(models.Review).filter(models.Review.cafe_id == cafe_id).all()
+    return reviews
+
+
+@app.post("/cafes/{cafe_id}/reviews", response_model=schemas.ReviewOut)
+def create_review(
+    cafe_id: int,
+    review_data: schemas.ReviewCreate, # Треба створити просту схему ReviewCreate (rating, comment)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    new_review = models.Review(
+        cafe_id=cafe_id,
+        user_id=current_user.id,
+        **review_data.model_dump()
+    )
+    db.add(new_review)
+    db.commit()
+    db.refresh(new_review)
+    return new_review

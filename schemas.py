@@ -220,3 +220,84 @@ class HistoryResponse(BaseModel):
                                           else word for i, word in enumerate(
             s.split("_")))
     )
+
+
+# Спрощена схема юзера для відгуків
+class UserShort(BaseModel):
+    id: int
+    img: Optional[str]
+    first_name: str
+    last_name: str
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize()
+                                          if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
+
+
+class ReviewReplyOut(BaseModel):
+    id: int
+    review_id: int
+    user: UserShort
+    comment: str
+    likes: int
+    dislikes: int
+    created_at: datetime
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize()
+                                          if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
+
+
+class ReviewOut(BaseModel):
+    id: int
+    cafe_id: int
+    user: UserShort
+    rating: int
+    comment: str
+    likes: int
+    dislikes: int
+    created_at: datetime
+    replies: List[ReviewReplyOut] = []
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(word.capitalize()
+                                          if i > 0
+                                          else word for i, word in enumerate(
+            s.split("_")))
+    )
+
+
+class ReviewCreate(BaseModel):
+    rating: int
+    comment: str
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )
+
+
+class ReviewReplyCreate(BaseModel):
+    comment: str
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )
