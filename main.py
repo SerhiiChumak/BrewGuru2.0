@@ -375,3 +375,40 @@ def upload_avatar(
     db.commit()
 
     return {"info": "Avatar uploaded", "img_url": current_user.img}
+
+
+@app.post("/cafes/{cafe_id}/upload-image", response_model=schemas.Cafe)
+def upload_cafe_image(
+        cafe_id: int,
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+        admin: models.User = Depends(auth.get_admin_user)  # Тільки адмін може завантажувати
+):
+    # 1. Перевіряємо, чи існує кафе
+    db_cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
+    if not db_cafe:
+        raise HTTPException(status_code=404, detail="Cafe not found")
+
+    # 2. Обробка файлу
+    # Створюємо папку, якщо її ще немає
+    upload_dir = "static/uploads/cafes"
+    os.makedirs(upload_dir, exist_ok=True)
+
+    # Генерація унікального імені
+    file_ext = file.filename.split(".")[-1]
+    file_name = f"cafe_{cafe_id}_{uuid.uuid4().hex[:8]}.{file_ext}"
+    file_path = os.path.join(upload_dir, file_name)
+
+    # Збереження на диск
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # 3. Оновлення шляху в базі даних
+    # Формуємо URL, який буде доступний фронтенду
+    relative_url = f"/static/uploads/cafes/{file_name}"
+    db_cafe.img = relative_url
+
+    db.commit()
+    db.refresh(db_cafe)
+
+    return db_cafe

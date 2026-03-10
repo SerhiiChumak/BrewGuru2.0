@@ -42,6 +42,7 @@ class Cafe(Base):
     has_parking = Column(Boolean, default=False)
     has_terrace = Column(Boolean, default=False)
     is_pet_friendly = Column(Boolean, default=False)
+    img = Column(String, nullable=True)
 
     # Зв'язок з меню
     menu = relationship("MenuItem", back_populates="cafe")
