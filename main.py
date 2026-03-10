@@ -1,5 +1,4 @@
 from datetime import timedelta, datetime
-
 from fastapi import FastAPI, Depends, HTTPException, Body
 from pydantic import BaseModel
 from typing import List, Optional
@@ -7,11 +6,20 @@ from sqlalchemy.orm import Session
 import models, schemas, auth
 from fastapi.security import OAuth2PasswordRequestForm
 from database import engine, get_db
+from fastapi.staticfiles import StaticFiles
+import shutil
+import os
+import uuid
+from fastapi import UploadFile, File
 
 
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Cafe Service API")
+
+
+# Дозволяємо доступ до папки з браузера
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 @app.get("/menu", response_model=List[schemas.MenuItemBase])
@@ -345,3 +353,25 @@ def create_review(
     db.commit()
     db.refresh(new_review)
     return new_review
+
+
+@app.post("/users/me/upload-avatar")
+def upload_avatar(
+        file: UploadFile = File(...),
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    # Створюємо унікальне ім'я файлу
+    file_ext = file.filename.split(".")[-1]
+    file_name = f"{uuid.uuid4()}.{file_ext}"
+    file_path = f"static/uploads/{file_name}"
+
+    # Зберігаємо файл на диск
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # Оновлюємо посилання в базі (URL для фронтенда)
+    current_user.img = f"/static/uploads/{file_name}"
+    db.commit()
+
+    return {"info": "Avatar uploaded", "img_url": current_user.img}
