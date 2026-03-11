@@ -11,10 +11,9 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
 
-    # Нові поля від фронтенда
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    img = Column(String, nullable=True)  # URL аватара
+    img = Column(String, nullable=True)  # аватарка
     phone = Column(String, nullable=True)
 
     email_verified = Column(Boolean, default=False)
@@ -46,7 +45,6 @@ class Cafe(Base):
 
     # Зв'язок з меню
     menu = relationship("MenuItem", back_populates="cafe")
-    img = Column(String, nullable=True) # URL картинки кафе
     opening_hours = relationship("OpeningHours", back_populates="cafe")
 
 
