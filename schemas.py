@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Optional
 
 
@@ -111,8 +111,10 @@ class Cafe(CafeBase):
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    first_name: Optional[str] = None # Буде firstName для фронтенда
-    last_name: Optional[str] = None  # Буде lastName для фронтенда
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birthday: Optional[date] = None
+    country: Optional[str] = None
     role: Optional[str] = "customer"
 
     # Це налаштування дозволить фронтенду присилати JSON з camelCase
@@ -148,6 +150,26 @@ class UserOut(UserBase):
             word.capitalize() if i > 0 else word
             for i, word in enumerate(s.split("_"))
         )
+    )
+
+
+class UserSettings(BaseModel):
+    firstName: str
+    lastName: str
+    email: str
+    birthday: Optional[date]
+    country: Optional[str]
+    isPrivateProfile: bool
+    notificationsEnabled: bool
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize()
+            if i > 0
+            else word
+            for i, word in enumerate(s.split("_")))
     )
 
 
@@ -301,3 +323,8 @@ class ReviewReplyCreate(BaseModel):
             for i, word in enumerate(s.split("_"))
         )
     )
+
+
+class ReviewUpdate(BaseModel):
+    rating: Optional[int] = None
+    comment: Optional[str] = None

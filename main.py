@@ -290,6 +290,11 @@ def get_user_profile(current_user: models.User = Depends(auth.get_current_user))
     return current_user
 
 
+@app.get("/users/me/settings", response_model=schemas.UserSettings)
+def get_settings(current_user: models.User = Depends(auth.get_current_user)):
+    return current_user
+
+
 @app.patch("/users/me/settings", response_model=schemas.UserSettingsSchema)
 def update_my_settings(
         settings_data: schemas.UserSettingsSchema,
@@ -328,6 +333,53 @@ def get_my_history(
             }]
         })
     return history
+
+
+@app.delete("/users/me/history/{visit_id}")
+def delete_history_item(visit_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    visit = db.query(models.Visit).filter(models.Visit.id == visit_id, models.Visit.user_id == current_user.id).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found in your history")
+    db.delete(visit)
+    db.commit()
+    return {"detail": "History item removed"}
+
+
+# Отримати всі мої відгуки
+@app.get("/users/me/reviews", response_model=List[schemas.ReviewOut])
+def get_my_reviews(db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
+    return db.query(models.Review).filter(models.Review.user_id == current_user.id).all()
+
+
+# Видалити відгук
+@app.delete("/reviews/{review_id}")
+def delete_review(review_id: int, db: Session = Depends(get_db),
+                  current_user: models.User = Depends(auth.get_current_user)):
+    review = db.query(models.Review).filter(models.Review.id == review_id,
+                                            models.Review.user_id == current_user.id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found or not yours")
+    db.delete(review)
+    db.commit()
+    return {"detail": "Review deleted"}
+
+
+# Редагувати відгук
+@app.patch("/reviews/{review_id}", response_model=schemas.ReviewOut)
+def update_review(review_id: int, review_update: schemas.ReviewUpdate, db: Session = Depends(get_db),
+                  current_user: models.User = Depends(auth.get_current_user)):
+    db_review = db.query(models.Review).filter(models.Review.id == review_id,
+                                               models.Review.user_id == current_user.id).first()
+    if not db_review:
+        raise HTTPException(status_code=404, detail="Review not found")
+
+    update_data = review_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_review, key, value)
+
+    db.commit()
+    db.refresh(db_review)
+    return db_review
 
 
 @app.get("/cafes/{cafe_id}/reviews", response_model=List[schemas.ReviewOut])

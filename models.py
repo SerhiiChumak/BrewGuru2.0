@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Time
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Time, Date
 from sqlalchemy.orm import relationship
 from database import Base
 from sqlalchemy.sql import func
@@ -21,6 +21,13 @@ class User(Base):
 
     role = Column(String, default="customer")
     is_active = Column(Boolean, default=True)
+
+    birthday = Column(Date, nullable=True)
+    country = Column(String, nullable=True)
+
+    # Сетінги (можна розширювати)
+    is_private_profile = Column(Boolean, default=False)
+    notifications_enabled = Column(Boolean, default=True)
 
     # Автоматичні дати
     created_at = Column(DateTime(timezone=True), server_default=func.now())
