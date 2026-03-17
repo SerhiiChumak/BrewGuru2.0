@@ -509,3 +509,86 @@ def create_report(
     db.refresh(new_report)
 
     return new_report
+
+
+# Редагування причини скарги (User)
+@app.patch("/reports/{report_id}", response_model=schemas.ReportOut)
+def update_my_report(
+        report_id: int,
+        reason_update: str,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    report = db.query(models.Report).filter(models.Report.id == report_id).first()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    # Перевірка: чи це твій репорт?
+    if report.reporter_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions to edit this report")
+
+    report.reason = reason_update
+    db.commit()
+    db.refresh(report)
+    return report
+
+
+# Видалення скарги (User)
+@app.delete("/reports/{report_id}")
+def delete_my_report(
+        report_id: int,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    report = db.query(models.Report).filter(models.Report.id == report_id).first()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    if report.reporter_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions to delete this report")
+
+    db.delete(report)
+    db.commit()
+    return {"message": "Report deleted successfully"}
+
+
+# Отримання всіх скарг (Admin)
+@app.get("/admin/reports", response_model=list[schemas.ReportOut])
+def get_all_reports(
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    return db.query(models.Report).all()
+
+
+# Оновлення статусу репорту адміном (Admin)
+class AdminReportUpdate(BaseModel):
+    status: str
+    system_message: Optional[str] = None
+
+
+@app.patch("/admin/reports/{report_id}")
+def moderate_report(
+        report_id: int,
+        update_data: AdminReportUpdate,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    report = db.query(models.Report).filter(models.Report.id == report_id).first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    report.status = update_data.status
+    if update_data.system_message:
+        report.system_message = update_data.system_message
+
+    db.commit()
+    return {"message": f"Report {report_id} status updated to {update_data.status}"}
