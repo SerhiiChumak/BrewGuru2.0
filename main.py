@@ -171,31 +171,69 @@ def update_cafe(
     return db_cafe
 
 
-@app.post("/register", response_model=schemas.UserOut)
+# @app.post("/register", response_model=schemas.UserOut)
+# def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+#     # 1. Перевіряємо, чи такий email вже існує
+#     db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
+#     if db_user:
+#         raise HTTPException(status_code=400, detail="Email already registered")
+#
+#     # 2. Хешуємо пароль
+#     hashed_pwd = auth.get_password_hash(user_data.password)
+#
+#     # 3. Створюємо юзера з усіма новими полями
+#     # Використовуємо model_dump() для зручності, але виключаємо пароль
+#     # 1. Створюємо юзера
+#     user_dict = user_data.model_dump(exclude={"password"})
+#     new_user = models.User(hashed_password=hashed_pwd, **user_dict)
+#     db.add(new_user)
+#     db.flush()  # Отримуємо ID юзера
+#
+#     # 2. Створюємо дефолтні налаштування для цього юзера
+#     default_settings = models.UserSettings(user_id=new_user.id)
+#     db.add(default_settings)
+#
+#     db.commit()
+#     db.refresh(new_user)
+#     return new_user
+
+
+@app.post("/register", response_model=schemas.UserWithToken)
 def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-    # 1. Перевіряємо, чи такий email вже існує
+    # 1. перевірка імейлу
     db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # 2. Хешуємо пароль
+    # 2. хешування пароля
     hashed_pwd = auth.get_password_hash(user_data.password)
 
-    # 3. Створюємо юзера з усіма новими полями
-    # Використовуємо model_dump() для зручності, але виключаємо пароль
-    # 1. Створюємо юзера
+    # 3. створення юзера
     user_dict = user_data.model_dump(exclude={"password"})
     new_user = models.User(hashed_password=hashed_pwd, **user_dict)
     db.add(new_user)
-    db.flush()  # Отримуємо ID юзера
+    db.flush()  # Отримуємо ID юзера для налаштувань
 
-    # 2. Створюємо дефолтні налаштування для цього юзера
+    # 4. створення дефолтних налаштувань
     default_settings = models.UserSettings(user_id=new_user.id)
     db.add(default_settings)
 
     db.commit()
     db.refresh(new_user)
-    return new_user
+
+    # --- НОВА ЧАСТИНА: АВТОЛОГІН ---
+
+    # 5. Генеруємо токен для нового юзера
+    access_token = auth.create_access_token(
+        data={"sub": new_user.email, "role": new_user.role}
+    )
+
+    # 6. Повертаємо об'єкт, який відповідає схемі UserWithToken
+    return {
+        "user": new_user,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 @app.post("/token")

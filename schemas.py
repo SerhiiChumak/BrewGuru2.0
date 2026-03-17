@@ -95,19 +95,6 @@ class Cafe(CafeBase):
     model_config = {"from_attributes": True}
 
 
-# class UserCreate(BaseModel):
-#     email: str
-#     password: str
-#     role: Optional[str] = "customer"
-#
-#
-# class UserOut(BaseModel):
-#     id: int
-#     email: str
-#     role: str
-#
-#     model_config = {"from_attributes": True}
-
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
@@ -134,6 +121,7 @@ class UserBase(BaseModel):
     img: Optional[str] = None
     phone: Optional[str] = None
 
+
 # Схема для відповіді фронтенду
 class UserOut(UserBase):
     id: int
@@ -151,6 +139,12 @@ class UserOut(UserBase):
             for i, word in enumerate(s.split("_"))
         )
     )
+
+
+class UserWithToken(BaseModel):
+    user: UserOut
+    access_token: str
+    token_type: str
 
 
 class UserSettings(BaseModel):
