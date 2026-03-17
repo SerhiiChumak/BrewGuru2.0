@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, model_validator, Field
 from datetime import datetime, date
 from typing import List, Optional
 
@@ -322,3 +322,35 @@ class ReviewReplyCreate(BaseModel):
 class ReviewUpdate(BaseModel):
     rating: Optional[int] = None
     comment: Optional[str] = None
+
+
+class ReportOut(BaseModel):
+    id: int
+    targetId: int = Field(alias="target_id")
+    reportedUserId: int = Field(alias="reported_user_id")
+    reportedBy: dict # Тут буде {id, firstName, lastName}
+    createdAt: datetime = Field(alias="created_at")
+    comment: str
+    reportReason: str = Field(alias="reason")
+    systemMessage: str = Field(alias="system_message")
+    status: str
+
+    @model_validator(mode='before')
+    @classmethod
+    def format_report(cls, data):
+        # Магія для вкладених об'єктів
+        return {
+            "id": data.id,
+            "targetId": data.target_id,
+            "reportedUserId": data.reported_user_id,
+            "reportedBy": {
+                "id": data.reporter.id,
+                "firstName": data.reporter.first_name,
+                "lastName": data.reporter.last_name
+            },
+            "createdAt": data.created_at,
+            "comment": data.review.comment, # Беремо текст коментаря з рев'ю
+            "reportReason": data.reason,
+            "systemMessage": data.system_message,
+            "status": data.status
+        }
