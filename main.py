@@ -373,6 +373,14 @@ def get_my_history(
     return history
 
 
+@app.post("/users/me/history")
+def add_visit(cafe_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    new_visit = models.Visit(user_id=current_user.id, cafe_id=cafe_id)
+    db.add(new_visit)
+    db.commit()
+    return {"status": "Visit recorded"}
+
+
 @app.delete("/users/me/history/{visit_id}")
 def delete_history_item(visit_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     visit = db.query(models.Visit).filter(models.Visit.id == visit_id, models.Visit.user_id == current_user.id).first()
