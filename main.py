@@ -171,33 +171,6 @@ def update_cafe(
     return db_cafe
 
 
-# @app.post("/register", response_model=schemas.UserOut)
-# def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
-#     # 1. Перевіряємо, чи такий email вже існує
-#     db_user = db.query(models.User).filter(models.User.email == user_data.email).first()
-#     if db_user:
-#         raise HTTPException(status_code=400, detail="Email already registered")
-#
-#     # 2. Хешуємо пароль
-#     hashed_pwd = auth.get_password_hash(user_data.password)
-#
-#     # 3. Створюємо юзера з усіма новими полями
-#     # Використовуємо model_dump() для зручності, але виключаємо пароль
-#     # 1. Створюємо юзера
-#     user_dict = user_data.model_dump(exclude={"password"})
-#     new_user = models.User(hashed_password=hashed_pwd, **user_dict)
-#     db.add(new_user)
-#     db.flush()  # Отримуємо ID юзера
-#
-#     # 2. Створюємо дефолтні налаштування для цього юзера
-#     default_settings = models.UserSettings(user_id=new_user.id)
-#     db.add(default_settings)
-#
-#     db.commit()
-#     db.refresh(new_user)
-#     return new_user
-
-
 @app.post("/register", response_model=schemas.UserWithToken)
 def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     # 1. перевірка імейлу
@@ -510,3 +483,29 @@ def upload_cafe_image(
     db.refresh(db_cafe)
 
     return db_cafe
+
+
+@app.post("/reports", response_model=schemas.ReportOut)
+def create_report(
+        report_in: schemas.ReportCreate,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)
+):
+    # 1. Шукаємо коментар, на який скаржаться
+    review = db.query(models.Review).filter(models.Review.id == report_in.target_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # 2. Створюємо запис скарги
+    new_report = models.Report(
+        target_id=report_in.target_id,
+        reported_user_id=review.user_id,  # Беремо автора коментаря
+        reporter_id=current_user.id,  # Той, хто зараз залогінений
+        reason=report_in.reason
+    )
+
+    db.add(new_report)
+    db.commit()
+    db.refresh(new_report)
+
+    return new_report

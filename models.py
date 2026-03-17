@@ -165,18 +165,35 @@ class ReviewReply(Base):
     review = relationship("Review", back_populates="replies")
 
 
+# class Report(Base):
+#     __tablename__ = "reports"
+#     id = Column(Integer, primary_key=True, index=True)
+#     target_id = Column(Integer, ForeignKey("reviews.id")) # ID коментаря
+#     reported_user_id = Column(Integer) # Кого репортуємо
+#     reporter_id = Column(Integer, ForeignKey("users.id")) # Хто репортує
+#     reason = Column(String)
+#     system_message = Column(String, default="Report received and pending moderation.")
+#     status = Column(String, default="Under review")
+#     # created_at = Column(DateTime, default=datetime.utcnow)
+#     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+#
+#     # Зв'язки для того, щоб витягнути дані одним запитом
+#     reporter = relationship("User")
+#     review = relationship("Review")
+
+
 class Report(Base):
     __tablename__ = "reports"
+
     id = Column(Integer, primary_key=True, index=True)
-    target_id = Column(Integer, ForeignKey("reviews.id")) # ID коментаря
-    reported_user_id = Column(Integer) # Кого репортуємо
-    reporter_id = Column(Integer, ForeignKey("users.id")) # Хто репортує
+    target_id = Column(Integer, ForeignKey("reviews.id")) # На яке рев'ю скарга
+    reported_user_id = Column(Integer, ForeignKey("users.id")) # Автор рев'ю (на кого скарга)
+    reporter_id = Column(Integer, ForeignKey("users.id")) # Хто поскаржився
     reason = Column(String)
     system_message = Column(String, default="Report received and pending moderation.")
     status = Column(String, default="Under review")
-    # created_at = Column(DateTime, default=datetime.utcnow)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
-    # Зв'язки для того, щоб витягнути дані одним запитом
-    reporter = relationship("User")
+    # Зв'язки (Relations)
+    reporter = relationship("User", foreign_keys=[reporter_id])
     review = relationship("Review")
