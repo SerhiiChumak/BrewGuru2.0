@@ -347,7 +347,7 @@ def get_my_history(
 
 
 @app.post("/users/me/history")
-def add_visit(cafe_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def add_visit(cafe_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(auth.get_current_user)):
     new_visit = models.Visit(user_id=current_user.id, cafe_id=cafe_id)
     db.add(new_visit)
     db.commit()
