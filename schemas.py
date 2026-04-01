@@ -80,6 +80,7 @@ class CafeBase(BaseModel):
     description: Optional[str] = None
     address: str
     city: str
+    phone: Optional[str] = None
     working_hours: str
     has_wifi: bool
     has_parking: bool
