@@ -32,6 +32,7 @@ services:
         condition: service_healthy
     volumes:
       - ./static:/app/static # Щоб фото не зникали при перезапуску
+    command: sh -c "python seed.py && uvicorn main:app --host 0.0.0.0 --port 8000"
 
 volumes:
   postgres_data:

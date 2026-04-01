@@ -91,18 +91,17 @@ class CafeBase(BaseModel):
     rating: float
 
 
-@app.get("/cafes", response_model=List[schemas.Cafe])
+@app.get("/cafes", response_model=List[schemas.CafeOut])
 def get_cafes(city: Optional[str] = None, db: Session = Depends(get_db)):
     query = db.query(models.Cafe)
 
     if city:
-        # Фільтруємо по місту (незалежно від регістру)
         query = query.filter(models.Cafe.city.ilike(f"%{city}%"))
 
     return query.all()
 
 
-@app.get("/cafes/{cafe_id}", response_model=schemas.Cafe)
+@app.get("/cafes/{cafe_id}", response_model=schemas.CafeOut)
 def get_cafe(cafe_id: int, db: Session = Depends(get_db)):
     cafe = db.query(models.Cafe).filter(models.Cafe.id == cafe_id).first()
     if not cafe:

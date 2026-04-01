@@ -1,3 +1,6 @@
+from typing import Optional, List
+
+from pydantic import ConfigDict
 from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey, DateTime, Time, Date
 from sqlalchemy.orm import relationship
 from database import Base
@@ -45,27 +48,45 @@ class Cafe(Base):
     address = Column(String)
     city = Column(String)
     working_hours = Column(String)
+    phone = Column(String, nullable=True)
+    rating = Column(Integer, nullable=True)
+    average_check = Column(Integer, nullable=True)
+
     has_wifi = Column(Boolean, default=False)
     has_parking = Column(Boolean, default=False)
     has_terrace = Column(Boolean, default=False)
     is_pet_friendly = Column(Boolean, default=False)
-    img = Column(String, nullable=True)
+    image_url= Column(String, nullable=True)
 
     # Зв'язок з меню
     menu = relationship("MenuItem", back_populates="cafe")
     opening_hours = relationship("OpeningHours", back_populates="cafe")
+    tables = relationship("Table", back_populates="cafe", cascade="all, delete-orphan")
 
 
+# ПРАВИЛЬНИЙ ВАРІАНТ у models.py
 class OpeningHours(Base):
     __tablename__ = "opening_hours"
-    id = Column(Integer, primary_key=True, index=True)
+
+    id = Column(Integer, primary_key=True)
     cafe_id = Column(Integer, ForeignKey("cafes.id"))
-    weekday = Column(Integer) # 1-7 (Пн-Нд)
-    open_time = Column(String) # Наприклад "08:00"
-    close_time = Column(String) # Наприклад "22:00"
+    weekday = Column(Integer)
+    open_time = Column(String, nullable=True)
+    close_time = Column(String, nullable=True)
     is_open = Column(Boolean, default=True)
 
     cafe = relationship("Cafe", back_populates="opening_hours")
+
+
+class Table(Base):
+    __tablename__ = "tables"
+    id = Column(Integer, primary_key=True)
+    cafe_id = Column(Integer, ForeignKey("cafes.id"))
+
+    name = Column(String, nullable=False)  # Наприклад, "Столик біля вікна"
+    seats = Column(Integer, default=2)
+
+    cafe = relationship("Cafe", back_populates="tables")
 
 
 class Visit(Base):

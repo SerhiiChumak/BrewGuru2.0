@@ -188,8 +188,8 @@ class UserSettingsSchema(BaseModel):
 class OpeningHoursOut(BaseModel):
     id: int
     weekday: int
-    open_time: str
-    close_time: str
+    open_time: Optional[str]
+    close_time: Optional[str]
     is_open: bool
     model_config = ConfigDict(
         from_attributes=True,
@@ -198,6 +198,38 @@ class OpeningHoursOut(BaseModel):
                                           else word for i, word in enumerate(
             s.split("_")))
     )
+
+
+# class OpeningHourOut(BaseModel):
+#     weekday: int
+#     open_time: Optional[str]
+#     close_time: Optional[str]
+#     is_open: bool
+#
+#     model_config = ConfigDict(from_attributes=True)
+
+
+class TableOut(BaseModel):
+    id: int
+    name: str
+    seats: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CafeOut(BaseModel):
+    id: int
+    name: str
+    address: str
+    # Додай Optional та = None до всіх полів, яких може не бути в базі
+    working_hours: Optional[str] = None
+    image_url: Optional[str] = None
+    phone: Optional[str] = None
+
+    opening_hours: List[OpeningHoursOut] = []
+
+    class Config:
+        from_attributes = True
 
 
 class CafeInVisit(BaseModel):
