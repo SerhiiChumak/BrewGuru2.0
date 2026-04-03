@@ -208,6 +208,28 @@ def register_user(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     }
 
 
+@app.patch("/users/me", response_model=schemas.UserOut)
+def update_user_me(
+        user_update: schemas.UserUpdate,
+        db: Session = Depends(get_db),
+        current_user: models.User = Depends(auth.get_current_user)  # Твій депенденсі для авторизації
+):
+    # Конвертуємо отримані дані в словник, ігноруючи незаповнені поля
+    update_data = user_update.model_dump(exclude_unset=True)
+
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+
+    try:
+        db.commit()
+        db.refresh(current_user)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Could not update user")
+
+    return current_user
+
+
 @app.post("/token")
 def login_for_access_token(
         form_data: OAuth2PasswordRequestForm = Depends(),

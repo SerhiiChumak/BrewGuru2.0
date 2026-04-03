@@ -115,6 +115,23 @@ class UserCreate(BaseModel):
     )
 
 
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    birthday: Optional[date] = None
+    country: Optional[str] = None
+    phone: Optional[str] = None
+    img: Optional[str] = None
+
+    model_config = ConfigDict(
+        populate_by_name=True,
+        alias_generator=lambda s: "".join(
+            word.capitalize() if i > 0 else word
+            for i, word in enumerate(s.split("_"))
+        )
+    )
+
+
 class UserBase(BaseModel):
     email: EmailStr
     first_name: Optional[str] = None
