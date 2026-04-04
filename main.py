@@ -230,6 +230,16 @@ def update_user_me(
     return current_user
 
 
+@app.delete("/users/me")
+def deactivate_user_me(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    current_user.is_active = False  # Просто деактивуємо
+    db.commit()
+    return {"message": "Account deactivated. We will miss you!"}
+
+
 @app.post("/token")
 def login_for_access_token(
         form_data: OAuth2PasswordRequestForm = Depends(),
