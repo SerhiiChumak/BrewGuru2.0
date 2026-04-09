@@ -328,7 +328,6 @@ def get_cafe_orders(
 
 @app.get("/users/me", response_model=schemas.UserOut)
 def get_user_profile(current_user: models.User = Depends(auth.get_current_user)):
-    """Повертає дані профілю поточного юзера для фронтенда"""
     return current_user
 
 
